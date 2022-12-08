@@ -28,7 +28,7 @@ Additional tools:
 
 ## Tags
 
-- `terraform-X.Y.Z-awscli-X.Y.Z-infracost-X.Y.Z-terraform-X.Y.Z-bullseye-YYYYmmdd`, `terraform-X.Y.Z`, `latest`
+- `terraform-X.Y.Z-awscli-X.Y.Z-infracost-X.Y.Z-asdf-X.Y.Z-bullseye-YYYYmmdd`, `terraform-X.Y.Z`, `latest`
 
 ## Usage
 
