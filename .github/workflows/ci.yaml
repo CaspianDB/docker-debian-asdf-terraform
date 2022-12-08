@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+    paths-ignore:
+      - .dockerignore
+      - .editorconfig
+      - .gitignore
+      - .hadolint.yaml
+      - .markdownlint.yaml
+      - .trunk/**
+      - LICENSE
+      - README.md
+  pull_request:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+
+    permissions:
+      id-token: write
+      contents: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Prepare environment variables
+        run: cat .github/.env >> $GITHUB_ENV
+
+      - name: Enable Docker experimental features
+        run: |
+          sudo yq '.experimental=true' -i -o json /etc/docker/daemon.json
+          sudo systemctl restart docker.service
+
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Configure AWS Credentials
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+
+      - name: Login to Amazon ECR Public
+        id: login-ecr
+        if: github.ref == 'refs/heads/main'
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry-type: public
+
+      - name: Calculate new version number
+        run: echo VERSION=$(make info | awk '$1=="Version:"{print $2}') | tee -a $GITHUB_ENV
+
+      - name: Build
+        run: make build VERSION="${VERSION}"
+
+      - name: Inspect container image
+        run: docker inspect "$IMAGE_NAME" | jq -C .
+
+      - name: Test built image
+        run: make test
+
+      - name: Push to ECR
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: make push DOCKER_REPO="${AWS_ECR_REPO}"
+
+      - name: Push to Docker
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: make push DOCKER_REPO="${DOCKER_REPO}"
+
+      - name: Create new git tag
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          git tag -f ${VERSION}
+          git push -f origin ${VERSION}

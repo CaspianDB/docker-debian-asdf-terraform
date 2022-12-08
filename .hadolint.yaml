@@ -1,0 +1,5 @@
+ignored:
+  - DL3008 # Pin versions in apt get install. Instead of `apt-get install <package>` use `apt-get install <package>=<version>`
+  - DL3009 # Delete the apt-get lists after installing something
+  - DL3059 # Multiple consecutive `RUN` instructions. Consider consolidation.
+  - DL4006 # Set the SHELL option -o pipefail before RUN with a pipe in it. If you are using /bin/sh in an alpine image or if your shell is symlinked to busybox then consider explicitly setting your SHELL to /bin/ash, or disable this check.
