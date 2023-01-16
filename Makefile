@@ -41,6 +41,14 @@ test: ## Test local image
 	docker run --rm -t ${IMAGE_NAME} terraform --version | grep ^Terraform
 	docker run --rm -t ${IMAGE_NAME} tf version | grep ^tf
 
+.PHONY: update
+update: ## Update asdf tools.
+	$(call print-target)
+	cat .tool-versions | while read app version; do \
+		asdf install $$app latest; \
+		asdf local $$app latest; \
+	done
+
 .PHONY: info
 info: ## Show information about version
 	@echo "Version:           ${VERSION}"
